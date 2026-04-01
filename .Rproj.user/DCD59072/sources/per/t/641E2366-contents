@@ -1,0 +1,70 @@
+---
+title: "TP1"
+format: html
+editor: visual
+---
+
+```{r}
+# Cargar librerías 
+library(tidyverse)
+library(janitor)
+
+# Armamos una función para leer los datos
+leer_datos <- function(ruta, filas_a_saltar = 0) {
+  tabla <- read_csv(ruta, skip = filas_a_saltar, show_col_types = FALSE) %>% 
+    clean_names() 
+  
+  print(colnames(tabla)) 
+  return(tabla)
+}
+
+# Cargamos los archivos
+datos_internet <- leer_datos("../data/internet_users_world_wide.csv", filas_a_saltar = 4)
+datos_paises <- leer_datos("../data/metadata_countries_internet_users.csv")
+
+
+# Pasamos los años a filas 
+tabla_larga <- datos_internet %>%
+  pivot_longer(
+    cols = -c(country_name, country_code, indicator_name, indicator_code),
+    names_to = "year",
+    values_to = "valor_indicador"
+  ) %>%
+  mutate(year = as.numeric(str_extract(year, "\\d+"))) 
+
+
+# Sacamos las filas que no tienen datos
+tabla_limpia <- tabla_larga %>%
+  drop_na(valor_indicador)
+
+# Juntamos los datos de internet con la info de cada país
+datos_completos <- tabla_limpia %>%
+  left_join(datos_paises, by = "country_code") 
+
+# Ordenamos los grupos de ingresos 
+datos_completos <- datos_completos %>%
+  mutate(income_group = factor(income_group, 
+                               levels = c("Low income", "Lower middle income", 
+                                          "Upper middle income", "High income"),
+                               ordered = TRUE))
+
+# Filtramos y calculamos el promedio por región y año 
+tabla_resumen <- datos_completos %>%
+  filter(year >= 2013 & year <= 2023) %>%
+  drop_na(income_group) %>%
+  group_by(year, income_group) %>%
+  summarize(valor_indicador = mean(valor_indicador, na.rm = TRUE), .groups = 'drop')
+
+resultado_hipotesis <- tabla_resumen %>%
+  pivot_wider(names_from = income_group, values_from = valor_indicador) %>%
+  mutate(indicator_name = "Proporción de la población que usa internet (%)") %>%
+  select(year, `Low income`, `Lower middle income`, `Upper middle income`, `High income`, indicator_name)
+
+# Exportamos el archivo 
+write_csv(resultado_hipotesis, "../output/resultado_hipotesis.csv")
+
+print(resultado_hipotesis)
+```
+
+
+
