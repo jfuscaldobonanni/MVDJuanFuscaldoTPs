@@ -4,12 +4,20 @@ format: html
 editor: visual
 ---
 
+# Carga de librerías
+
 ```{r}
-# Cargar librerías 
 library(tidyverse)
 library(janitor)
 
+
+```
+
 # Armamos una función para leer los datos
+
+Se define una función para leer los archivos y normalizar los nombres de las columnas.
+
+```{r}
 leer_datos <- function(ruta, filas_a_saltar = 0) {
   tabla <- read_csv(ruta, skip = filas_a_saltar, show_col_types = FALSE) %>% 
     clean_names() 
@@ -17,13 +25,23 @@ leer_datos <- function(ruta, filas_a_saltar = 0) {
   print(colnames(tabla)) 
   return(tabla)
 }
+```
 
-# Cargamos los archivos
+# Carga de datos
+
+Se cargan los datasets de internet y metadata de países.
+
+```{r}
 datos_internet <- leer_datos("../data/internet_users_world_wide.csv", filas_a_saltar = 4)
 datos_paises <- leer_datos("../data/metadata_countries_internet_users.csv")
 
+```
 
-# Pasamos los años a filas 
+# Transformación de datos
+
+Se transforma la base de formato wide a long para facilitar el análisis por año.
+
+```{r}
 tabla_larga <- datos_internet %>%
   pivot_longer(
     cols = -c(country_name, country_code, indicator_name, indicator_code),
@@ -31,36 +49,68 @@ tabla_larga <- datos_internet %>%
     values_to = "valor_indicador"
   ) %>%
   mutate(year = as.numeric(str_extract(year, "\\d+"))) 
+```
 
+# Limpieza de datos
 
-# Sacamos las filas que no tienen datos
+Se eliminan las observaciones con valores faltantes.
+
+```{r}
 tabla_limpia <- tabla_larga %>%
   drop_na(valor_indicador)
+```
 
-# Juntamos los datos de internet con la info de cada país
+# Unión de datos
+
+Se combinan los datos de acceso a internet con la información de ingresos por país.
+
+```{r}
 datos_completos <- tabla_limpia %>%
   left_join(datos_paises, by = "country_code") 
+```
 
-# Ordenamos los grupos de ingresos 
+# Orden de grupos de ingresos
+
+Se ordenan los grupos de ingresos de forma jerárquica.
+
+```{r}
 datos_completos <- datos_completos %>%
   mutate(income_group = factor(income_group, 
                                levels = c("Low income", "Lower middle income", 
                                           "Upper middle income", "High income"),
                                ordered = TRUE))
 
-# Filtramos y calculamos el promedio por región y año 
+```
+
+# Análisis de datos
+
+Se filtran los años de interés y se calcula el promedio de acceso a internet por grupo de ingresos.
+
+```{r}
 tabla_resumen <- datos_completos %>%
   filter(year >= 2013 & year <= 2023) %>%
   drop_na(income_group) %>%
   group_by(year, income_group) %>%
   summarize(valor_indicador = mean(valor_indicador, na.rm = TRUE), .groups = 'drop')
 
+```
+
+# Resultados
+
+Se transforma la tabla para facilitar la comparación entre grupos.
+
+```{r}
 resultado_hipotesis <- tabla_resumen %>%
   pivot_wider(names_from = income_group, values_from = valor_indicador) %>%
   mutate(indicator_name = "Proporción de la población que usa internet (%)") %>%
   select(year, `Low income`, `Lower middle income`, `Upper middle income`, `High income`, indicator_name)
+```
 
-# Exportamos el archivo 
+# Exportación de resultados
+
+Se exporta el resultado final a un archivo CSV.
+
+```{r}
 write_csv(resultado_hipotesis, "../output/resultado_hipotesis.csv")
 
 print(resultado_hipotesis)
