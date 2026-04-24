@@ -1,0 +1,129 @@
+---
+title: "scraping"
+format: html
+editor: visual
+---
+
+```{r}
+# ---------------------------------------
+# LIBRERÍAS
+# ---------------------------------------
+library(rvest)
+library(tidyverse)
+library(here)
+
+message("Iniciando scraping OEA...")
+
+# ---------------------------------------
+# CREAR CARPETA DATA
+# ---------------------------------------
+dir.create(here("TP2/data"), showWarnings = FALSE, recursive = TRUE)
+
+# ---------------------------------------
+# PARÁMETROS
+# ---------------------------------------
+meses <- 1:4
+base_url <- "https://www.oas.org/es/centro_noticias/comunicados_prensa.asp"
+
+tabla_noticias <- list()
+id <- 1
+
+# ---------------------------------------
+# LOOP POR MESES
+# ---------------------------------------
+for (mes in meses) {
+  
+  message("Mes: ", mes)
+  
+  url <- paste0(base_url, "?nMes=", mes, "&nAnio=2026")
+  
+  pagina <- read_html(url)
+  
+  # ---------------------------------------
+  # EXTRAER LINKS CORRECTAMENTE
+  # ---------------------------------------
+  links <- pagina %>%
+    html_elements("a") %>%
+    html_attr("href")
+  
+  # eliminar NA
+  links <- links[!is.na(links)]
+  
+  # eliminar vacíos
+  links <- links[links != ""]
+  
+  # filtrar solo comunicados reales
+  links <- links[str_detect(links, "comunicado_prensa.asp\\?sCodigo=")]
+  
+  # convertir a links completos
+  links <- ifelse(
+    str_detect(links, "^http"),
+    links,
+    paste0("https://www.oas.org", links)
+  )
+  
+  # eliminar duplicados
+  links <- unique(links)
+  
+  # chequeo opcional
+  print(links[1:5])
+  
+  # ---------------------------------------
+  # LOOP DE NOTICIAS
+  # ---------------------------------------
+  for (link in links) {
+    
+    message("Procesando: ", link)
+    
+    noticia <- tryCatch(
+      read_html(link),
+      error = function(e) {
+        message("Error en: ", link)
+        return(NULL)
+      }
+    )
+    
+    if (is.null(noticia)) next
+    
+    # ---------------------------------------
+    # EXTRAER TITULO
+    # ---------------------------------------
+    titulo <- noticia %>%
+      html_element("h1") %>%
+      html_text(trim = TRUE)
+    
+    # ---------------------------------------
+    # EXTRAER CUERPO
+    # ---------------------------------------
+    cuerpo <- noticia %>%
+      html_elements("p") %>%
+      html_text(trim = TRUE) %>%
+      paste(collapse = " ")
+    
+    # ---------------------------------------
+    # GUARDAR EN LISTA
+    # ---------------------------------------
+    tabla_noticias[[id]] <- tibble(
+      id = id,
+      titulo = titulo,
+      cuerpo = cuerpo
+    )
+    
+    id <- id + 1
+    
+    Sys.sleep(2)
+  }
+}
+
+# ---------------------------------------
+# TABLA FINAL
+# ---------------------------------------
+datos_oea <- bind_rows(tabla_noticias)
+
+# ---------------------------------------
+# GUARDAR
+# ---------------------------------------
+saveRDS(datos_oea, here("TP2/data/datos_oea.rds"))
+
+
+```
