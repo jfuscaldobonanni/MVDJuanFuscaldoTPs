@@ -1,18 +1,20 @@
 ---
-title: "scraping"
+title: "tp"
 format: html
 editor: visual
 ---
 
+Librerias
+
 ```{r}
-# ---------------------------------------
-# LIBRERÍAS
-# ---------------------------------------
 library(rvest)
 library(tidyverse)
+library(here)
+```
 
-message("Iniciando scraping OEA...")
+Estructura links + loops noticias
 
+```{r}
 meses <- 1:4
 
 resultados <- list()
@@ -30,27 +32,34 @@ for (mes in meses) {
   
   pagina <- read_html(url)
   
-  # ---------------------------------------
-  # LINKS (AHORA CON .itemmenulink)
-  # ---------------------------------------
-  links <- pagina %>%
-    html_elements(".itemmenulink") %>%
+  items <- pagina %>%
+    html_elements(".itemmenulink")
+  
+  titulos <- items %>%
+    html_text(trim = TRUE)
+  
+  links <- items %>%
     html_attr("href")
   
-  links <- links[!is.na(links)]
-  links <- links[str_detect(links, "comunicado_prensa.asp")]
+  # limpiar
+  datos_mes <- tibble(
+    titulo = titulos,
+    link = links
+  ) %>%
+    filter(!is.na(link)) %>%
+    filter(str_detect(link, "comunicado_prensa.asp"))
   
-  links <- paste0("https://www.oas.org/es/centro_noticias/", links)
-  links <- unique(links)
+  # armar links completos
+  datos_mes <- datos_mes %>%
+    mutate(link = paste0(
+      "https://www.oas.org/es/centro_noticias/",
+      link
+    ))
   
-  print(links[1:5])
-  
-  # ---------------------------------------
-  # LOOP NOTICIAS
-  # ---------------------------------------
-  for (link in links) {
+  for (i in 1:nrow(datos_mes)) {
     
-    message("Procesando: ", link)
+    link <- datos_mes$link[i]
+    titulo <- datos_mes$titulo[i]
     
     noticia <- tryCatch(
       read_html(link),
@@ -59,23 +68,11 @@ for (mes in meses) {
     
     if (is.null(noticia)) next
     
-    # ---------------------------------------
-    # TITULO (AHORA BIEN)
-    # ---------------------------------------
-    titulo <- noticia %>%
-      html_element("td") %>%
-      html_text(trim = TRUE)
-    
-    # ---------------------------------------
-    # CUERPO
-    # ---------------------------------------
     cuerpo <- noticia %>%
-      html_elements("p") %>%
+      html_elements("#rightmaincol p") %>%
       html_text(trim = TRUE)
     
     cuerpo <- cuerpo[cuerpo != ""]
-    cuerpo <- cuerpo[!str_detect(cuerpo, "JavaScript")]
-    
     cuerpo <- paste(cuerpo, collapse = " ")
     
     resultados[[id]] <- tibble(
@@ -90,8 +87,12 @@ for (mes in meses) {
   }
 }
 
+```
+
+Tabla con datos + guardado
+
+```{r}
 datos_oea <- bind_rows(resultados)
 
-print(head(datos_oea))
-print(nrow(datos_oea))
+saveRDS(datos_oea, here("TP2/data/datos_oea.rds"))
 ```

@@ -1,0 +1,52 @@
+---
+title: "texto"
+format: html
+editor: visual
+---
+
+Librerías
+
+```{r}
+library(tidyverse)
+library(udpipe)
+library(here)
+
+
+
+```
+
+Cargar datos
+
+```{r}
+datos_oea <- readRDS(here("TP2/data/datos_oea.rds"))
+```
+
+Limpieza del cuerpo
+
+```{r}
+datos_oea <- datos_oea %>%
+  mutate(cuerpo_limpio = str_to_lower(cuerpo)) %>%
+  mutate(cuerpo_limpio = str_replace_all(cuerpo_limpio, "[^a-záéíóúñ\\s]", ""))
+
+modelo <- udpipe_download_model(language = "spanish")
+modelo <- udpipe_load_model(modelo$file_model)
+
+anotado <- udpipe_annotate(modelo, x = datos_oea$cuerpo_limpio)
+anotado <- as.data.frame(anotado)
+
+```
+
+Filtrado
+
+```{r}
+texto_procesado <- anotado %>%
+  filter(upos %in% c("NOUN", "VERB", "ADJ")) %>%
+  mutate(lemma = tolower(lemma))
+```
+
+Guardar
+
+```{r}
+saveRDS(texto_procesado, here("TP2/output/texto_procesado.rds"))
+
+```

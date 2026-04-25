@@ -1,0 +1,13 @@
+---
+title: "Notebook"
+format: html
+editor: visual
+---
+
+```{r}
+library(here)
+# Ejecutar cada etapa en orden
+source(here("TP2/scripts/scraping_oea.R"))
+source(here("TP2/scripts/processing.R"))
+source(here("TP2/scripts/metrics_figures.R"))
+```

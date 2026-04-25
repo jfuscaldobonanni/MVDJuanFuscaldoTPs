@@ -1,0 +1,51 @@
+---
+title: "graficos"
+format: html
+editor: visual
+---
+
+Librerías
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+```
+
+Cargar datos
+
+```{r}
+texto_procesado <- readRDS(here("TP2/output/texto_procesado.rds"))
+```
+
+Frecuencia de palabras + TOP 5
+
+```{r}
+frecuencias <- texto_procesado %>%
+  count(lemma, sort = TRUE)
+
+top_palabras <- frecuencias %>%
+  slice_max(n, n = 5)
+
+print(top_palabras)
+```
+
+Gráfico
+
+```{r}
+grafico <- ggplot(top_palabras, aes(x = reorder(lemma, n), y = n)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Palabras más frecuentes en comunicados de la OEA",
+    x = "Palabra",
+    y = "Frecuencia"
+  )
+
+ggsave(
+  here("TP2/output/grafico_palabras.png"),
+  grafico,
+  width = 8,
+  height = 5
+)
+```
