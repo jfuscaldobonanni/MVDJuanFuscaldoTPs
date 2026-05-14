@@ -1,20 +1,14 @@
----
-title: "tp"
-format: html
-editor: visual
----
-
-Librerias
-
-```{r}
+#Librerias
 library(rvest)
 library(tidyverse)
 library(here)
-```
 
-Estructura links + loops noticias
+#Crear carpetas
 
-```{r}
+dir.create("../data", showWarnings = FALSE)
+dir.create("../output", showWarnings = FALSE)
+
+#Estructura links + loops noticias
 meses <- 1:4
 
 resultados <- list()
@@ -87,12 +81,7 @@ for (mes in meses) {
   }
 }
 
-```
-
-Tabla con datos + guardado
-
-```{r}
+#Tabla con datos + guardado
 datos_oea <- bind_rows(resultados)
 
 saveRDS(datos_oea, here("TP2/data/datos_oea.rds"))
-```

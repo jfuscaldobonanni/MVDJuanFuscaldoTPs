@@ -1,30 +1,14 @@
----
-title: "texto"
-format: html
-editor: visual
----
-
-Librerías
-
-```{r}
+#Librerias
 library(tidyverse)
 library(udpipe)
 library(here)
 library(tidytext)
 library(tm)
 
-
-```
-
-Cargar datos
-
-```{r}
+#Cargar datos
 datos_oea <- readRDS(here("TP2/data/datos_oea.rds"))
-```
 
-Limpieza del cuerpo
-
-```{r}
+#Limpieza del cuerpo
 datos_oea <- datos_oea %>%
   mutate(cuerpo_limpio = str_to_lower(cuerpo)) %>%
   mutate(cuerpo_limpio = str_replace_all(cuerpo_limpio, "[^a-záéíóúñ\\s]", ""))
@@ -35,19 +19,12 @@ modelo <- udpipe_load_model(modelo$file_model)
 anotado <- udpipe_annotate(modelo, x = datos_oea$cuerpo_limpio)
 anotado <- as.data.frame(anotado)
 
-```
-
-Filtrado
-
-```{r}
+#Filtrado
 texto_procesado <- anotado %>%
   filter(upos %in% c("NOUN", "VERB", "ADJ")) %>%
   mutate(lemma = tolower(lemma))
-```
 
-Matriz DTM
-
-```{r}
+#Matriz DTM
 tokens <- texto_procesado %>%
   select(doc_id, lemma)
 
@@ -60,11 +37,6 @@ dtm <- tokens %>%
   )
 
 print(dtm)
-```
 
-Guardar
-
-```{r}
+#Guardar 
 saveRDS(texto_procesado, here("TP2/output/texto_procesado.rds"))
-
-```

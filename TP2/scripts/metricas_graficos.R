@@ -1,26 +1,12 @@
----
-title: "graficos"
-format: html
-editor: visual
----
-
-Librerías
-
-```{r}
+#Librerias 
 library(tidyverse)
 library(ggplot2)
 library(here)
-```
 
-Cargar datos
-
-```{r}
+#Cargar datos
 texto_procesado <- readRDS(here("TP2/output/texto_procesado.rds"))
-```
 
-Frecuencia de palabras + TOP 5
-
-```{r}
+#Frecuencia de palabras + TOP 5
 frecuencias <- texto_procesado %>%
   count(lemma, sort = TRUE)
 
@@ -28,11 +14,8 @@ top_palabras <- frecuencias %>%
   slice_max(n, n = 5)
 
 print(top_palabras)
-```
 
-Gráfico
-
-```{r}
+#grafico
 grafico <- ggplot(top_palabras, aes(x = reorder(lemma, n), y = n)) +
   geom_col() +
   coord_flip() +
@@ -48,4 +31,3 @@ ggsave(
   width = 8,
   height = 5
 )
-```
