@@ -10,7 +10,8 @@ Librerías
 library(tidyverse)
 library(udpipe)
 library(here)
-
+library(tidytext)
+library(tm)
 
 
 ```
@@ -42,6 +43,23 @@ Filtrado
 texto_procesado <- anotado %>%
   filter(upos %in% c("NOUN", "VERB", "ADJ")) %>%
   mutate(lemma = tolower(lemma))
+```
+
+Matriz DTM
+
+```{r}
+tokens <- texto_procesado %>%
+  select(doc_id, lemma)
+
+dtm <- tokens %>%
+  count(doc_id, lemma) %>%
+  cast_dtm(
+    document = doc_id,
+    term = lemma,
+    value = n
+  )
+
+print(dtm)
 ```
 
 Guardar
